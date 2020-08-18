@@ -1,11 +1,13 @@
 const express = require("express");
 const cors = require("cors");
-const { uuid } = require("uuidv4");
+const { uuid, isUuid } = require("uuidv4");
+const { response } = require("express");
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
+app.use('/repositories/:id', validateId);
 
 const repositories = [];
 
@@ -24,28 +26,51 @@ app.put("/repositories/:id", (request, response) => {
     const { url, title, techs } = request.body;
     const { id } = request.params;
 
-    console.log(id);
+    if (!title || !url || !techs) {
+        return response.status(400).json({ likes: 0 })
+    }
 
-    const alterPos = repositories.indexOf(repository => repository.id == id);
+    const alterPos = repositories.findIndex(repository => repository.id == id);
 
-    let alter;
-    url == true ? alter.url = url : '';
-    title == true ? alter.title = title : '';
-    techs == true ? alter.techs = techs : '';
-
-    console.log(alter);
+    const alter = {
+        id,
+        url,
+        title,
+        techs
+    }
 
     repositories[alterPos] = alter;
+
     response.json(alter);
 
 });
 
 app.delete("/repositories/:id", (request, response) => {
-    // TODO
+    const { url, title, techs } = request.body;
+    const { id } = request.params;
+
+    const alterPos = repositories.findIndex(repository => repository.id == id);
+
+    repositories.splice(alterPos, 1);
+    response.status(204).json();
 });
 
 app.post("/repositories/:id/like", (request, response) => {
-    // TODO
+    const { id } = request.params;
+    const likePos = repositories.findIndex(repository => repository.id == id);
+
+    repositories[likePos].likes += 1;
+
+    response.json(repositories[likePos]);
 });
+
+function validateId(request, response, next) {
+    const { id } = request.params;
+    if (!isUuid(id)) {
+        return response.status(400).json({ error: 'Invalid Id' });
+    } else {
+        next();
+    }
+}
 
 module.exports = app;
